@@ -87,13 +87,15 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
 
     private void ApplyDiscount(ProductSale productSale)
     {
-        if (productSale.Quantity >= 4 && productSale.Quantity < 10)
-        {
-            productSale.UnitPrice *= 0.9m; // 10% discount
-        }
-        else if (productSale.Quantity >= 10 && productSale.Quantity <= 20)
+        if (productSale.Quantity is >= 10 and <= 20)
         {
             productSale.UnitPrice *= 0.8m; // 20% discount
+            return;
+        }
+
+        if (productSale.Quantity is >= 4 and < 10)
+        {
+            productSale.UnitPrice *= 0.9m; // 10% discount
         }
     }
 
