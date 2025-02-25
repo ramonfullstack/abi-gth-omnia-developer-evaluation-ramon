@@ -72,5 +72,86 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sale
             // Assert
             Assert.Equal(command.Id, result.Id);
         }
+
+
+        [Fact(DisplayName = "Handle should throw exception when sale not found")]
+        public async Task Handle_Should_Throw_Exception_When_Sale_Not_Found()
+        {
+            var command = new UpdateSaleCommand { Id = Guid.NewGuid() };
+            _saleRepository.GetByIdAsync(command.Id, Arg.Any<CancellationToken>()).Returns((SaleEntity)null);
+
+            await Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.Handle(command, CancellationToken.None));
+        }
+
+        [Fact(DisplayName = "Handle should apply 10% discount for quantities between 4 and 9")]
+        public async Task Handle_Should_Apply_10_Percent_Discount()
+        {
+            var command = new UpdateSaleCommand
+            {
+                Id = Guid.NewGuid(),
+                Customer = "UpdatedCustomer",
+                Branch = "UpdatedBranch",
+                Products = new List<UpdateProductSaleDto>
+                {
+                    new UpdateProductSaleDto { Name = "UpdatedProduct", Quantity = 5, UnitPrice = 10.0M }
+                },
+                IsCanceled = false
+            };
+
+            var saleEntity = new SaleEntity { Id = command.Id };
+            _saleRepository.GetByIdAsync(command.Id, Arg.Any<CancellationToken>()).Returns(saleEntity);
+            _saleRepository.UpdateAsync(Arg.Any<SaleEntity>(), Arg.Any<CancellationToken>()).Returns(saleEntity);
+
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            Assert.Equal(9.0M, command.Products.First().UnitPrice);
+        }
+
+        [Fact(DisplayName = "Handle should apply 20% discount for quantities between 10 and 20")]
+        public async Task Handle_Should_Apply_20_Percent_Discount()
+        {
+            var command = new UpdateSaleCommand
+            {
+                Id = Guid.NewGuid(),
+                Customer = "UpdatedCustomer",
+                Branch = "UpdatedBranch",
+                Products = new List<UpdateProductSaleDto>
+                {
+                    new UpdateProductSaleDto { Name = "UpdatedProduct", Quantity = 10, UnitPrice = 10.0M }
+                },
+                IsCanceled = false
+            };
+
+            var saleEntity = new SaleEntity { Id = command.Id };
+            _saleRepository.GetByIdAsync(command.Id, Arg.Any<CancellationToken>()).Returns(saleEntity);
+            _saleRepository.UpdateAsync(Arg.Any<SaleEntity>(), Arg.Any<CancellationToken>()).Returns(saleEntity);
+
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            Assert.Equal(8.0M, command.Products.First().UnitPrice);
+        }
+
+        [Fact(DisplayName = "Handle should throw exception when quantity exceeds 20")]
+        public async Task Handle_Should_Throw_Exception_When_Quantity_Exceeds_20()
+        {
+            var command = new UpdateSaleCommand
+            {
+                Id = Guid.NewGuid(),
+                Customer = "UpdatedCustomer",
+                Branch = "UpdatedBranch",
+                Products = new List<UpdateProductSaleDto>
+                {
+                    new UpdateProductSaleDto { Name = "UpdatedProduct", Quantity = 21, UnitPrice = 10.0M }
+                },
+                IsCanceled = false
+            };
+
+            var saleEntity = new SaleEntity { Id = command.Id };
+            _saleRepository.GetByIdAsync(command.Id, Arg.Any<CancellationToken>()).Returns(saleEntity);
+            _saleRepository.UpdateAsync(Arg.Any<SaleEntity>(), Arg.Any<CancellationToken>()).Returns(saleEntity);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await _handler.Handle(command, CancellationToken.None));
+        }
+
     }
 }
